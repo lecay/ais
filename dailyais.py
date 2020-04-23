@@ -9,14 +9,14 @@ import pandas as pd
 
 filepath = './'
 pypath = 'J:/影响天气/lecay/ais/'
-# now = datetime.datetime.now()
-now = datetime.datetime(2020,4,14,15,10,10)
-if now.hour<4:
+now = datetime.datetime.now()
+#now = datetime.datetime(2020,4,14,15,10,10)
+if now.hour<7:
     dt = datetime.timedelta(hours=-9-now.hour)
 elif now.hour>=15:
     dt = datetime.timedelta(hours=15-now.hour)
 else:
-    dt = datetime.timedelta(hours=4-now.hour)
+    dt = datetime.timedelta(hours=7-now.hour)
 intimenum = now+dt
 intime = intimenum.strftime('%y%m%d%H')
 if os.path.exists(filepath+intime+'.json'):
@@ -48,13 +48,14 @@ for x in range(1,allrow):
 
 # h小时，wy填充下边界y坐标，wid填色宽度，height填色高度，color填色颜色，rim是否画右边界，dheight填色下边高度，isstr是否填写字符，fstr字符内容
 def drawwx(timestr,wy,wid,height,color,dheight=0,isstr=False,fstr='',alpha=1):
-    if timestr[0:2]==intime[4:6]:
+    if timestr[0:2]==intime[4:6]:    #当日
         h = int(timestr[2:])-int(intime[6:])
-    else:
+    else:                            #第二日
         h = int(timestr[2:])+24-int(intime[6:])
-    ax1.fill_between([stawx+(h+1-wid)*0.35,stawx+(h+1)*0.35],wy+height,wy+dheight,facecolor=color,alpha=alpha)
+    if h!=0:
+    	ax1.fill_between([stawx+(h-wid)*0.35,stawx+(h)*0.35],wy+height,wy+dheight,facecolor=color,alpha=alpha)
     if isstr:
-        ax1.text(stawx+(h+1-wid)*0.35+wid*0.175,wy+0.4,fstr,ha='center', va='center',fontproperties=font, size=8)
+        ax1.text(stawx+(h-wid)*0.35+wid*0.175,wy+0.4,fstr,ha='center', va='center',fontproperties=font, size=8)
 
 ax1.text(cnx/2,allrow-0.59,'机场',ha='center', va='center',fontproperties=font, size=8)    #机场四字码
 ax1.text((anx+cnx)/2,allrow-0.63,'跑道',ha='center', va='center',fontproperties=font, size=8)    #跑道号
@@ -65,7 +66,7 @@ cnsta = pd.read_csv(pypath+'stationcn.txt', header=None, sep=r'[\s]+', engine='p
 x = 0
 estcolor = 'tomato'
 infocolor = 'orange'
-for sta,detail in data.items():
+for sta in sorted(data,reverse=True):
     x = x+1
     wy = allrow-1-x
     stainfo = sta.split(); staid = stainfo[0]; rwy = ''.join(stainfo[1:-1])
@@ -74,18 +75,20 @@ for sta,detail in data.items():
     	ax1.text((cnx+fcx)/2-0.05,wy+0.4,cnsta.loc[staid,'cnname'][:5],ha='center', va='center',fontproperties=font, size=8)    #机场四字码
     ax1.text((anx+cnx)/2,wy+0.4,rwy[3:],ha='center', va='center',fontproperties=font, size=8)    #跑道号
     ax1.text((stawx+anx)/2,wy+0.4,stainfo[-1],ha='center', va='center',fontproperties=font, size=8)    #通告号
-    ax1.text(stawx+0.1,wy+0.4,detail['notamContent'],ha='left', va='center',fontproperties=font, size=8)    #通告内容
-    if detail['style'] == 'EST':
+    ax1.text(stawx+0.1,wy+0.4,data[sta]['notamContent'],ha='left', va='center',fontproperties=font, size=8)    #通告内容
+    if data[sta]['style'] == 'EST':
         ax1.fill_between([anx,stawx],wy+1,wy,facecolor=estcolor,alpha=0.5)
-    for t in detail['time']:   #时间填充
-        drawwx(t,wy,1,1,infocolor,alpha=0.5)
-
+    for ti,t in enumerate(data[sta]['time']):   #时间填充
+        if ti>0:
+        	drawwx(t,wy,1,1,infocolor,alpha=0.5)
+        
 ax1.set_xlim((0,allx))
 ax1.set_ylim((0,allrow))
-ax1.set_xticks([stawx-0.8,stawx-0.2]+list(np.arange(stawx+0.175,allx,0.35)))
+ax1.set_xticks([stawx-1.2,stawx-0.4]+list(np.arange(stawx,allx+0.35,0.35)))
 #ax1.set_xticklabels(['时间']+np.arange(0,24,1),fontsize=8.5, fontproperties=font1)
 secday = intimenum + datetime.timedelta(days=1)
-ax1.set_xticklabels(['时间 ->',intime[4:6]+'日']+list(np.arange(intimenum.hour,24,1))+[secday.strftime('%d')+'日']+list(np.arange(1,intimenum.hour,1)), fontproperties=font, size=8.5)
+#ax1.set_xticklabels(['北京时间 ->',intime[4:6]+'日']+list(np.arange(intimenum.hour,24,1))+[secday.strftime('%d')+'日']+list(np.arange(1,intimenum.hour+1,1)), fontproperties=font, size=8.5)
+ax1.set_xticklabels(['北京时间 ->',intime[4:6]+'日']+list(np.arange(intimenum.hour,24,1))+['0']+list(np.arange(1,intimenum.hour+1,1)), fontproperties=font, size=8.5)
 ax1.set_yticks([])
 ax1.tick_params(axis='x', labeltop='True', length=0.01, pad=2)
 ax1.annotate('*本图表每日07时和15时更新，仅供整体参考，动态及时信息请以情报处数据为准。', (0.05,0.25/ysize), xycoords='figure fraction', fontproperties=font, fontsize=8, color='dimgrey')
