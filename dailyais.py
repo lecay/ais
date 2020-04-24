@@ -7,26 +7,28 @@ from matplotlib import patches
 import numpy as np
 import pandas as pd
 
-filepath = './'
+filepath = 'K:/情报通告/data/'
+picpath = 'K:/情报通告/pictures/'
 pypath = 'J:/影响天气/lecay/ais/'
 now = datetime.datetime.now()
 #now = datetime.datetime(2020,4,14,15,10,10)
-if now.hour<7:
-    dt = datetime.timedelta(hours=-9-now.hour)
-elif now.hour>=15:
-    dt = datetime.timedelta(hours=15-now.hour)
-else:
-    dt = datetime.timedelta(hours=7-now.hour)
-intimenum = now+dt
-intime = intimenum.strftime('%y%m%d%H')
+# if now.hour<7:
+#     dt = datetime.timedelta(hours=-9-now.hour)
+# elif now.hour>=15:
+#     dt = datetime.timedelta(hours=15-now.hour)
+# else:
+#     dt = datetime.timedelta(hours=7-now.hour)
+#intimenum = now+dt
+intime = now.strftime('%y%m%d%H')
 if os.path.exists(filepath+intime+'.json'):
     with open(filepath+intime+'.json', 'rb') as f:
         data = json.load(f)
 allrow = len(data.keys())+1
 
-ysize = allrow*0.21+1.4    #图片长度
+hy = 0.25    #每行高度
+ysize = allrow*hy+1.4    #图片长度
 fig = plt.figure(figsize=(8,ysize),dpi=130)
-ax1 = fig.add_axes([0.05,0.6/(ysize),0.9,allrow*0.21/(ysize)])
+ax1 = fig.add_axes([0.05,0.6/(ysize),0.9,allrow*hy/(ysize)])
 font = fm.FontProperties(fname=r"C:/Windows/Fonts/msyh.ttc")
 
 fcx = 0.8     #机场四字码与中文名分割线x坐标
@@ -75,7 +77,10 @@ for sta in sorted(data,reverse=True):
     	ax1.text((cnx+fcx)/2-0.05,wy+0.4,cnsta.loc[staid,'cnname'][:5],ha='center', va='center',fontproperties=font, size=8)    #机场四字码
     ax1.text((anx+cnx)/2,wy+0.4,rwy[3:],ha='center', va='center',fontproperties=font, size=8)    #跑道号
     ax1.text((stawx+anx)/2,wy+0.4,stainfo[-1],ha='center', va='center',fontproperties=font, size=8)    #通告号
-    ax1.text(stawx+0.1,wy+0.4,data[sta]['notamContent'],ha='left', va='center',fontproperties=font, size=8)    #通告内容
+    if len(data[sta]['notamContent'])>76:
+        ax1.text(stawx+0.1,wy+0.4,data[sta]['notamContent'][:76]+'......',ha='left', va='center',fontproperties=font, size=8)     #超长通告内容
+    else:
+        ax1.text(stawx+0.1,wy+0.4,data[sta]['notamContent'],ha='left', va='center',fontproperties=font, size=8)    #通告内容
     if data[sta]['style'] == 'EST':
         ax1.fill_between([anx,stawx],wy+1,wy,facecolor=estcolor,alpha=0.5)
     for ti,t in enumerate(data[sta]['time']):   #时间填充
@@ -86,9 +91,9 @@ ax1.set_xlim((0,allx))
 ax1.set_ylim((0,allrow))
 ax1.set_xticks([stawx-1.2,stawx-0.4]+list(np.arange(stawx,allx+0.35,0.35)))
 #ax1.set_xticklabels(['时间']+np.arange(0,24,1),fontsize=8.5, fontproperties=font1)
-secday = intimenum + datetime.timedelta(days=1)
+secday = now + datetime.timedelta(days=1)
 #ax1.set_xticklabels(['北京时间 ->',intime[4:6]+'日']+list(np.arange(intimenum.hour,24,1))+[secday.strftime('%d')+'日']+list(np.arange(1,intimenum.hour+1,1)), fontproperties=font, size=8.5)
-ax1.set_xticklabels(['北京时间 ->',intime[4:6]+'日']+list(np.arange(intimenum.hour,24,1))+['0']+list(np.arange(1,intimenum.hour+1,1)), fontproperties=font, size=8.5)
+ax1.set_xticklabels(['北京时间 ->',intime[4:6]+'日']+list(np.arange(now.hour,24,1))+['0']+list(np.arange(1,now.hour+1,1)), fontproperties=font, size=8.5)
 ax1.set_yticks([])
 ax1.tick_params(axis='x', labeltop='True', length=0.01, pad=2)
 ax1.annotate('*本图表每日07时和15时更新，仅供整体参考，动态及时信息请以情报处数据为准。', (0.05,0.25/ysize), xycoords='figure fraction', fontproperties=font, fontsize=8, color='dimgrey')
@@ -114,6 +119,6 @@ patch = patches.Circle((200, 200), radius=200, transform=ax3.transData)
 im.set_clip_path(patch)
 ax3.axis('off')
 
-plt.savefig(filepath+intime+'.png')
+plt.savefig(picpath+intime+'.png')
 #plt.savefig(filepath+infocolor+'.png')
-plt.show()
+#plt.show()
